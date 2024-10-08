@@ -1,12 +1,15 @@
 {
-  "name": "material-ui-cra",
-  "version": "5.0.0",
+  "name": "aida-freediving-score-calculator",
+  "homepage": "https://ahakem.github.io/AIDA-Freediving-Score-Calculator",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d docs",
+    "eject": "react-scripts eject",
+    "build-and-docs": "npm run build && rimraf docs && mv build docs"
   },
   "dependencies": {
     "@emotion/react": "latest",
@@ -28,5 +31,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.1.1"
   }
 }
