@@ -6,7 +6,6 @@ import {
   Container,
   FormControlLabel,
   Checkbox,
-  Grid,
   Box,
   Tabs,
   Tab,
@@ -134,183 +133,168 @@ function App() {
   };
 
   return (
-    <Container maxWidth="md">
-      <AppBar position="static" style={{ backgroundColor: '#0075bc' }}>
-        <Toolbar>
-          <Typography variant="h6" style={{ flexGrow: 1 }}>
-            AIDA Freediving Score Calculator
-          </Typography>
-        </Toolbar>
-      </AppBar>
-
+    <Container maxWidth="md" style={{ padding: 0 }}>
       <Tabs
         value={discipline}
         onChange={(e, value) => setDiscipline(value)}
         indicatorColor="primary"
         textColor="primary"
         centered
-        style={{ marginBottom: '16px' }}
+        style={{ marginBottom: '16px', marginTop: '16px' }}
       >
-        <Tab label="Static (STA)" value="Static" />
-        <Tab label="Dynamic (DYN/DNF)" value="Dynamic" />
-        <Tab label="Depth (CWT/FIM/CNF)" value="Depth" />
+        <Tab label="STA" value="Static" />
+        <Tab label="Pool" value="Dynamic" />
+        <Tab label="Depth" value="Depth" />
       </Tabs>
 
       {discipline === 'Static' && (
-        <>
-          <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <TextField
-                label="Announced Performance Minutes (AP)"
-                type="number"
-                value={apMinutes}
-                onChange={(e) => setApMinutes(e.target.value)}
-                fullWidth
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Announced Performance Seconds (AP)"
-                type="number"
-                value={apSeconds}
-                onChange={(e) => setApSeconds(e.target.value)}
-                fullWidth
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Realized Performance Minutes (RP)"
-                type="number"
-                value={rpMinutes}
-                onChange={(e) => setRpMinutes(e.target.value)}
-                fullWidth
-                margin="normal"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Realized Performance Seconds (RP)"
-                type="number"
-                value={rpSeconds}
-                onChange={(e) => setRpSeconds(e.target.value)}
-                fullWidth
-                margin="normal"
-              />
-            </Grid>
-          </Grid>
-        </>
+        <div style={{ padding: '0 16px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <TextField
+              label="AP Min"
+              type="number"
+              inputMode="numeric"
+              value={apMinutes}
+              onChange={(e) => setApMinutes(e.target.value)}
+              fullWidth
+              margin="normal"
+            />
+            <TextField
+              label="AP Sec"
+              type="number"
+              inputMode="numeric"
+              value={apSeconds}
+              onChange={(e) => setApSeconds(e.target.value)}
+              fullWidth
+              margin="normal"
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <TextField
+              label="RP Min"
+              type="number"
+              inputMode="numeric"
+              value={rpMinutes}
+              onChange={(e) => setRpMinutes(e.target.value)}
+              fullWidth
+              margin="normal"
+            />
+            <TextField
+              label="RP Sec"
+              type="number"
+              inputMode="numeric"
+              value={rpSeconds}
+              onChange={(e) => setRpSeconds(e.target.value)}
+              fullWidth
+              margin="normal"
+            />
+          </div>
+        </div>
       )}
 
       {discipline !== 'Static' && (
-        <>
+        <div style={{ padding: '0 16px' }}>
           <TextField
-            label="Announced Performance Distance (AP in meters)"
+            label="AP Dist (m)"
             type="number"
+            inputMode="numeric"
             value={apDistance}
             onChange={(e) => setApDistance(e.target.value)}
             fullWidth
             margin="normal"
           />
           <TextField
-            label="Realized Performance Distance (RP in meters)"
+            label="RP Dist (m)"
             type="number"
+            inputMode="numeric"
             value={rpDistance}
             onChange={(e) => setRpDistance(e.target.value)}
             fullWidth
             margin="normal"
           />
-        </>
+        </div>
       )}
 
-      <TextField
-        label="Start Deviation (seconds)"
-        type="number"
-        value={startDeviation}
-        onChange={(e) => setStartDeviation(e.target.value)}
-        fullWidth
-        margin="normal"
-        helperText="Negative for early start, positive for late start"
-      />
+      <div style={{ padding: '0 16px' }}>
+        <TextField
+          label="Deviation (s)"
+          type="number"
+          inputMode="numeric"
+          value={startDeviation}
+          onChange={(e) => setStartDeviation(e.target.value)}
+          fullWidth
+          margin="normal"
+          helperText="Negative for early start, positive for late start"
+        />
+      </div>
 
       {(discipline === 'Dynamic' || discipline === 'Depth') && (
-        <Box marginTop={2}>
+        <Box marginTop={2} style={{ padding: '0 16px' }}>
           <Typography variant="h6">Penalties:</Typography>
-          <Grid container spacing={2}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {discipline === 'Depth' && (
               <>
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={penalties.missingTag}
-                        onChange={handlePenaltyChange}
-                        name="missingTag"
-                      />
-                    }
-                    label="Missing Tag"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={penalties.removeLanyard}
-                        onChange={handlePenaltyChange}
-                        name="removeLanyard"
-                      />
-                    }
-                    label="Remove Lanyard"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={penalties.grabLine}
-                        onChange={handlePenaltyChange}
-                        name="grabLine"
-                      />
-                    }
-                    label="Grab Line"
-                  />
-                </Grid>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={penalties.missingTag}
+                      onChange={handlePenaltyChange}
+                      name="missingTag"
+                    />
+                  }
+                  label="Missing Tag"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={penalties.removeLanyard}
+                      onChange={handlePenaltyChange}
+                      name="removeLanyard"
+                    />
+                  }
+                  label="Remove Lanyard"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={penalties.grabLine}
+                      onChange={handlePenaltyChange}
+                      name="grabLine"
+                    />
+                  }
+                  label="Grab Line"
+                />
               </>
             )}
             {discipline === 'Dynamic' && (
               <>
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={penalties.noTouch}
-                        onChange={handlePenaltyChange}
-                        name="noTouch"
-                      />
-                    }
-                    label="No Touch Start/Turn"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={penalties.pulling}
-                        onChange={handlePenaltyChange}
-                        name="pulling"
-                      />
-                    }
-                    label="Pulling"
-                  />
-                </Grid>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={penalties.noTouch}
+                      onChange={handlePenaltyChange}
+                      name="noTouch"
+                    />
+                  }
+                  label="No Touch Start/Turn"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={penalties.pulling}
+                      onChange={handlePenaltyChange}
+                      name="pulling"
+                    />
+                  }
+                  label="Pulling"
+                />
               </>
             )}
-          </Grid>
+          </div>
         </Box>
       )}
 
-      <Box display="flex" justifyContent="space-between" marginTop={3}>
+      <Box display="flex" justifyContent="space-between" padding="0 16px" marginTop={3}>
         <Button
           variant="contained"
           style={{ backgroundColor: '#0075bc', color: '#fff' }}
@@ -333,10 +317,9 @@ function App() {
         </Typography>
       )}
 
-      <Box marginTop={5} padding={2} textAlign="center" borderTop={`1px solid ${'#ccc'}`}>
+      <Box marginTop={5} padding={2} textAlign="center" borderTop="1px solid #ccc">
         <Typography variant="body2" color="textSecondary">
-          © {new Date().getFullYear()} Ahmed (Hakim) Elkholy
-          {' '}|{' '}
+          © {new Date().getFullYear()} Ahmed (Hakim) Elkholy |{' '}
           <Link
             href="https://www.instagram.com/hakim_elkholy/"
             target="_blank"
