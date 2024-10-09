@@ -62,7 +62,7 @@ function ScoreInput({
       ) : (
         <>
           <TextField
-            label="AP Dist (m)"
+            label={`AP ${discipline === 'Depth' ? 'Depth' : 'Distance'} (m)`}
             type="tel"
             inputMode="numeric"
             value={apDistance}
@@ -73,7 +73,7 @@ function ScoreInput({
             helperText={errors.apDistance}
           />
           <TextField
-            label="RP Dist (m)"
+            label={`RP ${discipline === 'Depth' ? 'Depth' : 'Distance'} (m)`}
             type="tel"
             inputMode="numeric"
             value={rpDistance}

@@ -7,6 +7,7 @@ import DeviationInput from './components/DeviationInput';
 import ResultAlert from './components/ResultAlert';
 import { calculateStartPenalty, getPenaltyCodes } from './utils/PenaltyUtils';
 
+
 function App() {
   const [discipline, setDiscipline] = useState('Static');
   const [apMinutes, setApMinutes] = useState('');
@@ -64,7 +65,7 @@ function App() {
       if (!rpDistance) newErrors.rpDistance = 'RP distance required';
     }
 
-    if ((penalties.earlyStart || penalties.lateStart) && !startDeviation) {
+    if ((penalties.earlyStart || penalties.lateStart) && !startDeviation && discipline !== 'Depth') {
       newErrors.startDeviation = 'Deviation is required';
     }
 
@@ -78,7 +79,7 @@ function App() {
     const startPenalty = calculateStartPenalty(penalties, startDeviation, discipline);
 
     if (startPenalty === 'disqualified') {
-      setScore('DQ');
+      setScore(0);  // Assign score to 0 for disqualification
       return;
     }
 
@@ -142,13 +143,15 @@ function App() {
         setApDistance={setApDistance} setRpDistance={setRpDistance}
         errors={errors}
       />
-      
-      <DeviationInput
-        penalties={penalties}
-        startDeviation={startDeviation}
-        setStartDeviation={setStartDeviation}
-        errors={errors}
-      />
+
+      {(discipline !== 'Depth' || penalties.earlyStart) && (
+        <DeviationInput
+          penalties={penalties}
+          startDeviation={startDeviation}
+          setStartDeviation={setStartDeviation}
+          errors={errors}
+        />
+      )}
 
       <PenaltiesComponent
         discipline={discipline}

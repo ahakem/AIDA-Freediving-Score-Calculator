@@ -15,29 +15,31 @@ function PenaltiesComponent({ discipline, penalties, setPenalties }) {
                 setPenalties((prev) => ({
                   ...prev,
                   earlyStart: checked,
-                  ...(checked ? { lateStart: false } : {}),
+                  lateStart: checked ? false : prev.lateStart, // Uncheck late start if early start is selected
                 }));
               }}
             />
           }
           label="Started Before OT (EARLY START)"
         />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={penalties.lateStart}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setPenalties((prev) => ({
-                  ...prev,
-                  lateStart: checked,
-                  ...(checked ? { earlyStart: false } : {}),
-                }));
-              }}
-            />
-          }
-          label={discipline === 'Depth' ? "Started After 30s (LATE START)" : "Started After 10s Window (LATE START)"}
-        />
+        {(discipline !== 'Depth') && (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={penalties.lateStart}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setPenalties((prev) => ({
+                    ...prev,
+                    lateStart: checked,
+                    earlyStart: checked ? false : prev.earlyStart, // Uncheck early start if late start is selected
+                  }));
+                }}
+              />
+            }
+            label="Started After 10s Window (LATE START)"
+          />
+        )}
         {discipline === 'Dynamic' && (
           <>
             <FormControlLabel

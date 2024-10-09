@@ -2,19 +2,17 @@ export const calculateStartPenalty = (penalties, deviation, discipline) => {
     let penalty = 0;
     deviation = parseFloat(deviation) || 0;
   
-    if (penalties.earlyStart && deviation > 0) {
-      if (deviation <= 5) penalty = 1;
-      else if (deviation <= 10) penalty = 2;
+    if (penalties.earlyStart) {
+      if (deviation > 0 && deviation <= 5) penalty = 1;
+      else if (deviation > 5 && deviation <= 10) penalty = 2;
     } else if (penalties.lateStart) {
       if (discipline === 'Depth') {
-        if (deviation <= 30) return 0;  // No penalty if within 30 seconds for depth
-        else if (deviation > 30) penalty = 1;
+        return 'disqualified';  // Automatically disqualify for late start in Depth after 30s
       } else {
-        if (deviation <= 10) return 0;  // No penalty if within 10 seconds for pool disciplines
-        else if (deviation <= 15) penalty = 1;
-        else if (deviation <= 20) penalty = 2;
-        else if (deviation <= 25) penalty = 3;
-        else if (deviation < 30) penalty = 4;
+        if (deviation > 10 && deviation <= 15) penalty = 1;
+        else if (deviation > 15 && deviation <= 20) penalty = 2;
+        else if (deviation > 20 && deviation <= 25) penalty = 3;
+        else if (deviation > 25 && deviation < 30) penalty = 4;
         else if (deviation >= 30) return 'disqualified';
       }
     }
@@ -26,7 +24,13 @@ export const calculateStartPenalty = (penalties, deviation, discipline) => {
     const codes = [];
   
     if (penalties.earlyStart && deviation > 0) codes.push('EARLY START');
-    if (penalties.lateStart && ((discipline === 'Depth' && deviation > 30) || (discipline !== 'Depth' && deviation > 10))) codes.push('LATE START');
+    if (penalties.lateStart) {
+      if (discipline === 'Depth') {
+        codes.push('DQ LATE START');
+      } else if (deviation > 10) {
+        codes.push('LATE START');
+      }
+    }
   
     if (
       discipline === 'Static' &&
