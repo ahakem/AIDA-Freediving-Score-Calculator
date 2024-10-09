@@ -2,6 +2,15 @@ import React from 'react';
 import { Alert } from '@mui/material';
 
 function ResultAlert({ score, penaltyCodes }) {
+  if (penaltyCodes.includes('DQ LATE START') || penaltyCodes.some(code => code.startsWith('DQ'))) {
+    // If disqualified, ensure red card regardless of score
+    return (
+      <Alert severity="error">
+        Disqualified (Red Card): {penaltyCodes.join(", ")}
+      </Alert>
+    );
+  }
+
   if (penaltyCodes.length > 0) {
     return (
       <Alert severity="warning">
@@ -9,10 +18,6 @@ function ResultAlert({ score, penaltyCodes }) {
         {penaltyCodes.join(", ")} (Yellow Card)
       </Alert>
     );
-  }
-
-  if (score === 'DQ') {
-    return <Alert severity="error">Disqualified (Red Card)</Alert>;
   }
 
   if (score !== null) {

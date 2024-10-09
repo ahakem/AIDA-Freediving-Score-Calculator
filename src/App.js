@@ -5,8 +5,8 @@ import ScoreInput from './components/ScoreInput';
 import PenaltiesComponent from './components/PenaltiesComponent';
 import DeviationInput from './components/DeviationInput';
 import ResultAlert from './components/ResultAlert';
+import DisqualificationComponent from './components/DisqualificationComponent';
 import { calculateStartPenalty, getPenaltyCodes } from './utils/PenaltyUtils';
-
 
 function App() {
   const [discipline, setDiscipline] = useState('Static');
@@ -27,6 +27,7 @@ function App() {
     grabLine: false,
     removeLanyard: false,
   });
+  const [disqualification, setDisqualification] = useState(null);
   const [score, setScore] = useState(null);
   const [errors, setErrors] = useState({});
 
@@ -48,10 +49,13 @@ function App() {
       grabLine: false,
       removeLanyard: false,
     });
+    setDisqualification(null);
     setScore(null);
     setErrors({});
   };
-
+useEffect(() => {
+  console.log("setDisqualification", disqualification);
+})
   const validateInputs = () => {
     const newErrors = {};
 
@@ -66,7 +70,8 @@ function App() {
     }
 
     if ((penalties.earlyStart || penalties.lateStart) && !startDeviation && discipline !== 'Depth') {
-      newErrors.startDeviation = 'Deviation is required';
+      const deviationLabel = penalties.earlyStart ? "early start time" : "late start time";
+      newErrors.startDeviation = `${deviationLabel} is required`;
     }
 
     setErrors(newErrors);
@@ -74,6 +79,12 @@ function App() {
   };
 
   const calculateScore = () => {
+    if (disqualification) {
+      // If disqualified, set score to 0 and show red card
+      setScore(0);
+      return;
+    }
+
     if (!validateInputs()) return;
 
     const startPenalty = calculateStartPenalty(penalties, startDeviation, discipline);
@@ -113,12 +124,11 @@ function App() {
     const finalScore = Math.max(points - penalty, 0);
     setScore(finalScore);
   };
-
   useEffect(() => {
     calculateScore();
   }, [
     discipline, apMinutes, apSeconds, rpMinutes, rpSeconds,
-    apDistance, rpDistance, startDeviation, penalties
+    apDistance, rpDistance, startDeviation, penalties, disqualification
   ]);
 
   useEffect(() => {
@@ -128,23 +138,44 @@ function App() {
   return (
     <Container maxWidth="md" style={{ padding: 0 }}>
       <TabsComponent discipline={discipline} setDiscipline={setDiscipline} />
-
+      
       <Box marginTop={3} padding="0 16px">
-        <ResultAlert score={score} penaltyCodes={getPenaltyCodes(penalties, startDeviation, discipline, rpMinutes, rpSeconds, apMinutes, apSeconds, rpDistance, apDistance)} />
+        <ResultAlert
+          score={score}
+          penaltyCodes={disqualification ? [disqualification] : [
+            ...getPenaltyCodes(
+              penalties,
+              startDeviation,
+              discipline,
+              rpMinutes,
+              rpSeconds,
+              apMinutes,
+              apSeconds,
+              rpDistance,
+              apDistance
+            )
+          ]}
+        />
       </Box>
 
       <ScoreInput
         discipline={discipline}
-        apMinutes={apMinutes} apSeconds={apSeconds}
-        rpMinutes={rpMinutes} rpSeconds={rpSeconds}
-        apDistance={apDistance} rpDistance={rpDistance}
-        setApMinutes={setApMinutes} setApSeconds={setApSeconds}
-        setRpMinutes={setRpMinutes} setRpSeconds={setRpSeconds}
-        setApDistance={setApDistance} setRpDistance={setRpDistance}
+        apMinutes={apMinutes}
+        apSeconds={apSeconds}
+        rpMinutes={rpMinutes}
+        rpSeconds={rpSeconds}
+        apDistance={apDistance}
+        rpDistance={rpDistance}
+        setApMinutes={setApMinutes}
+        setApSeconds={setApSeconds}
+        setRpMinutes={setRpMinutes}
+        setRpSeconds={setRpSeconds}
+        setApDistance={setApDistance}
+        setRpDistance={setRpDistance}
         errors={errors}
       />
 
-      {(discipline !== 'Depth' || penalties.earlyStart) && (
+      {(discipline !== 'Depth' || penalties.earlyStart) && !disqualification && (
         <DeviationInput
           penalties={penalties}
           startDeviation={startDeviation}
@@ -159,6 +190,12 @@ function App() {
         setPenalties={setPenalties}
       />
 
+      <DisqualificationComponent
+        discipline={discipline}
+        disqualification={disqualification}
+        setDisqualification={setDisqualification}
+      />
+
       <Box
         display="flex"
         justifyContent="space-between"
@@ -167,7 +204,7 @@ function App() {
       >
         <Button
           variant="contained"
-          style={{ backgroundColor: "#0075bc", color: "#fff" }}
+          style={{ backgroundColor: '#0075bc', color: '#fff' }}
           onClick={handleReset}
         >
           Reset
@@ -176,13 +213,13 @@ function App() {
 
       <Box marginTop={5} padding={2} textAlign="center" borderTop="1px solid #ccc">
         <Typography variant="body2" color="textSecondary">
-          © {new Date().getFullYear()} Ahmed (Hakim) Elkholy |{" "}
+          © {new Date().getFullYear()} Ahmed (Hakim) Elkholy |{' '}
           <Link
             href="https://www.instagram.com/hakim_elkholy/"
             target="_blank"
             rel="noopener noreferrer"
             color="inherit"
-            style={{ textDecoration: "none" }}
+            style={{ textDecoration: 'none' }}
           >
             Instagram
           </Link>
