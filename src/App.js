@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TextField,
   Button,
@@ -9,9 +9,11 @@ import {
   Box,
   Tabs,
   Tab,
-  AppBar,
-  Toolbar,
   Link,
+  RadioGroup,
+  Radio,
+  FormControl,
+  Alert
 } from '@mui/material';
 
 function App() {
@@ -22,73 +24,100 @@ function App() {
   const [rpSeconds, setRpSeconds] = useState('');
   const [apDistance, setApDistance] = useState('');
   const [rpDistance, setRpDistance] = useState('');
-  const [startDeviation, setStartDeviation] = useState(0);
-  const [penalties, setPenalties] = useState({
-    missingTag: false,
+  const [startDeviation, setStartDeviation] = useState('');
+  const [startDeviationType, setStartDeviationType] = useState('none');
+  const [poolPenalties, setPoolPenalties] = useState({
     noTouch: false,
     pulling: false,
+  });
+  const [depthPenalties, setDepthPenalties] = useState({
+    missingTag: false,
     grabLine: false,
     removeLanyard: false,
   });
   const [score, setScore] = useState(null);
+  const [errors, setErrors] = useState({});
 
   const handleReset = () => {
-    setDiscipline('Static');
     setApMinutes('');
     setApSeconds('');
     setRpMinutes('');
     setRpSeconds('');
     setApDistance('');
     setRpDistance('');
-    setStartDeviation(0);
-    setPenalties({
-      missingTag: false,
+    setStartDeviation('');
+    setStartDeviationType('none');
+    setPoolPenalties({
       noTouch: false,
       pulling: false,
+    });
+    setDepthPenalties({
+      missingTag: false,
       grabLine: false,
       removeLanyard: false,
     });
     setScore(null);
+    setErrors({});
+  };
+
+  const validateInputs = () => {
+    const newErrors = {};
+
+    if (discipline === 'Static') {
+      if (!apMinutes) newErrors.apMinutes = 'AP minutes required';
+      if (!apSeconds) newErrors.apSeconds = 'AP seconds required';
+      if (!rpMinutes) newErrors.rpMinutes = 'RP minutes required';
+      if (!rpSeconds) newErrors.rpSeconds = 'RP seconds required';
+    } else {
+      if (!apDistance) newErrors.apDistance = 'AP distance required';
+      if (!rpDistance) newErrors.rpDistance = 'RP distance required';
+    }
+
+    if (startDeviationType !== 'none' && !startDeviation) newErrors.startDeviation = 'Deviation is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const calculateStartPenalty = () => {
     let penalty = 0;
-    const deviation = parseInt(startDeviation, 10);
+    let deviation = parseFloat(startDeviation) || 0;
 
-    if (deviation < 0) {
-      if (deviation >= -10 && deviation <= -6) {
-        penalty = 2;
-      } else if (deviation >= -5 && deviation <= -1) {
+    if (startDeviationType === 'early') {
+      if (deviation > 0 && deviation <= 5) {
         penalty = 1;
+      } else if (deviation > 5 && deviation <= 10) {
+        penalty = 2;
       }
-    } else if (deviation >= 0) {
+    } else if (startDeviationType === 'late') {
       if (discipline !== 'Depth') {
-        if (deviation >= 10 && deviation < 15) {
+        if (deviation > 10 && deviation <= 15) {
           penalty = 1;
-        } else if (deviation >= 15 && deviation < 20) {
+        } else if (deviation > 15 && deviation <= 20) {
           penalty = 2;
-        } else if (deviation >= 20 && deviation < 25) {
+        } else if (deviation > 20 && deviation <= 25) {
           penalty = 3;
-        } else if (deviation >= 25 && deviation < 30) {
+        } else if (deviation > 25 && deviation < 30) {
           penalty = 4;
         } else if (deviation >= 30) {
           return 'disqualified';
         }
       } else {
-        if (deviation >= 30) {
-          return 'disqualified';
+        if (deviation > 30) {
+          penalty = 1;
         }
       }
     }
-
     return penalty;
   };
 
   const calculateScore = () => {
+    if (!validateInputs()) return;
+
     const startPenalty = calculateStartPenalty();
 
     if (startPenalty === 'disqualified') {
-      setScore(0);
+      setScore('DQ');
       return;
     }
 
@@ -110,8 +139,8 @@ function App() {
       if (rpNumber < apNumber) {
         penalty += (apNumber - rpNumber) * 0.5;
       }
-      if (penalties.noTouch) penalty += 5;
-      if (penalties.pulling) penalty += 5;
+      if (poolPenalties.noTouch) penalty += 5;
+      if (poolPenalties.pulling) penalty += 5;
     } else if (discipline === 'Depth') {
       const apNumber = parseFloat(apDistance);
       const rpNumber = Math.floor(parseFloat(rpDistance));
@@ -119,17 +148,69 @@ function App() {
       if (rpNumber < apNumber) {
         penalty += apNumber - rpNumber;
       }
-      if (penalties.missingTag) penalty += 1;
-      if (penalties.grabLine) penalty += 5;
-      if (penalties.removeLanyard) penalty += 10;
+      if (depthPenalties.missingTag) penalty += 1;
+      if (depthPenalties.grabLine) penalty += 5;
+      if (depthPenalties.removeLanyard) penalty += 10;
     }
 
     const finalScore = Math.max(points - penalty, 0);
     setScore(finalScore);
   };
 
-  const handlePenaltyChange = (event) => {
-    setPenalties({ ...penalties, [event.target.name]: event.target.checked });
+  // Recalculate score on input change
+  useEffect(() => {
+    calculateScore();
+  }, [
+    discipline,
+    apMinutes,
+    apSeconds,
+    rpMinutes,
+    rpSeconds,
+    apDistance,
+    rpDistance,
+    startDeviation,
+    startDeviationType,
+    poolPenalties,
+    depthPenalties,
+  ]);
+
+  // Clear penalties when discipline changes
+  useEffect(() => {
+    handleReset();
+  }, [discipline]);
+
+  const handlePenaltyChange = (update, type) => {
+    if(type === 'pool') {
+      setPoolPenalties({ ...poolPenalties, ...update });
+    } else if(type === 'depth') {
+      setDepthPenalties({ ...depthPenalties, ...update });
+    }
+  };
+
+  const getResultAlert = () => {
+    if (score === 'DQ') {
+      return <Alert severity="error">Disqualified (Red Card)</Alert>;
+    }
+
+    if (score !== null) {
+      const hasPenalties = 
+          poolPenalties.noTouch || 
+          poolPenalties.pulling || 
+          depthPenalties.missingTag || 
+          depthPenalties.grabLine || 
+          depthPenalties.removeLanyard || 
+          startDeviationType === 'early' || 
+          startDeviationType === 'late';
+
+      if (score === 0 || score === 'DQ') {
+        return <Alert severity="error">Disqualified (Red Card)</Alert>;
+      } else if (hasPenalties) {
+        return <Alert severity="warning">Score: {score.toFixed(2)}. Penalties applied (Yellow Card)</Alert>;
+      } else {
+        return <Alert severity="success">Score: {score.toFixed(2)}. White Card</Alert>;
+      }
+    }
+    return null;
   };
 
   return (
@@ -152,41 +233,49 @@ function App() {
           <div style={{ display: 'flex', gap: '8px' }}>
             <TextField
               label="AP Min"
-              type="number"
+              type="tel"
               inputMode="numeric"
               value={apMinutes}
               onChange={(e) => setApMinutes(e.target.value)}
               fullWidth
               margin="normal"
+              error={!!errors.apMinutes}
+              helperText={errors.apMinutes}
             />
             <TextField
               label="AP Sec"
-              type="number"
+              type="tel"
               inputMode="numeric"
               value={apSeconds}
               onChange={(e) => setApSeconds(e.target.value)}
               fullWidth
               margin="normal"
+              error={!!errors.apSeconds}
+              helperText={errors.apSeconds}
             />
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <TextField
               label="RP Min"
-              type="number"
+              type="tel"
               inputMode="numeric"
               value={rpMinutes}
               onChange={(e) => setRpMinutes(e.target.value)}
               fullWidth
               margin="normal"
+              error={!!errors.rpMinutes}
+              helperText={errors.rpMinutes}
             />
             <TextField
               label="RP Sec"
-              type="number"
+              type="tel"
               inputMode="numeric"
               value={rpSeconds}
               onChange={(e) => setRpSeconds(e.target.value)}
               fullWidth
               margin="normal"
+              error={!!errors.rpSeconds}
+              helperText={errors.rpSeconds}
             />
           </div>
         </div>
@@ -196,100 +285,122 @@ function App() {
         <div style={{ padding: '0 16px' }}>
           <TextField
             label="AP Dist (m)"
-            type="number"
+            type="tel"
             inputMode="numeric"
             value={apDistance}
             onChange={(e) => setApDistance(e.target.value)}
             fullWidth
             margin="normal"
+            error={!!errors.apDistance}
+            helperText={errors.apDistance}
           />
           <TextField
             label="RP Dist (m)"
-            type="number"
+            type="tel"
             inputMode="numeric"
             value={rpDistance}
             onChange={(e) => setRpDistance(e.target.value)}
             fullWidth
             margin="normal"
+            error={!!errors.rpDistance}
+            helperText={errors.rpDistance}
           />
         </div>
       )}
 
       <div style={{ padding: '0 16px' }}>
-        <TextField
-          label="Deviation (s)"
-          type="number"
-          inputMode="numeric"
-          value={startDeviation}
-          onChange={(e) => setStartDeviation(e.target.value)}
-          fullWidth
-          margin="normal"
-          helperText="Negative for early start, positive for late start"
-        />
+        <FormControl component="fieldset">
+          <RadioGroup
+            row
+            value={startDeviationType}
+            onChange={(e) => {
+              setStartDeviationType(e.target.value);
+              setStartDeviation('');
+            }}
+          >
+            <FormControlLabel value="none" control={<Radio />} label="Dove in the Correct Window" />
+            <FormControlLabel value="early" control={<Radio />} label="Early Start" />
+            <FormControlLabel value="late" control={<Radio />} label="Late Start" />
+          </RadioGroup>
+        </FormControl>
+
+        {startDeviationType !== 'none' && (
+          <TextField
+            label="Deviation (s)"
+            type="tel"
+            inputMode="numeric"
+            value={startDeviation}
+            onChange={(e) => setStartDeviation(e.target.value)}
+            fullWidth
+            margin="normal"
+            error={!!errors.startDeviation}
+            helperText={errors.startDeviation}
+          />
+        )}
       </div>
 
-      {(discipline === 'Dynamic' || discipline === 'Depth') && (
+      {discipline === 'Dynamic' && (
         <Box marginTop={2} style={{ padding: '0 16px' }}>
           <Typography variant="h6">Penalties:</Typography>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {discipline === 'Depth' && (
-              <>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={penalties.missingTag}
-                      onChange={handlePenaltyChange}
-                      name="missingTag"
-                    />
-                  }
-                  label="Missing Tag"
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={poolPenalties.noTouch}
+                  onChange={(e) => handlePenaltyChange({noTouch: e.target.checked}, 'pool')}
+                  name="noTouch"
                 />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={penalties.removeLanyard}
-                      onChange={handlePenaltyChange}
-                      name="removeLanyard"
-                    />
-                  }
-                  label="Remove Lanyard"
+              }
+              label="No Touch Start/Turn"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={poolPenalties.pulling}
+                  onChange={(e) => handlePenaltyChange({pulling: e.target.checked}, 'pool')}
+                  name="pulling"
                 />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={penalties.grabLine}
-                      onChange={handlePenaltyChange}
-                      name="grabLine"
-                    />
-                  }
-                  label="Grab Line"
+              }
+              label="Pulling"
+            />
+          </div>
+        </Box>
+      )}
+
+      {discipline === 'Depth' && (
+        <Box marginTop={2} style={{ padding: '0 16px' }}>
+          <Typography variant="h6">Penalties:</Typography>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={depthPenalties.missingTag}
+                  onChange={(e) => handlePenaltyChange({missingTag: e.target.checked}, 'depth')}
+                  name="missingTag"
                 />
-              </>
-            )}
-            {discipline === 'Dynamic' && (
-              <>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={penalties.noTouch}
-                      onChange={handlePenaltyChange}
-                      name="noTouch"
-                    />
-                  }
-                  label="No Touch Start/Turn"
+              }
+              label="Missing Tag"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={depthPenalties.grabLine}
+                  onChange={(e) => handlePenaltyChange({grabLine: e.target.checked}, 'depth')}
+                  name="grabLine"
                 />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={penalties.pulling}
-                      onChange={handlePenaltyChange}
-                      name="pulling"
-                    />
-                  }
-                  label="Pulling"
+              }
+              label="Grab Line"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={depthPenalties.removeLanyard}
+                  onChange={(e) => handlePenaltyChange({removeLanyard: e.target.checked}, 'depth')}
+                  name="removeLanyard"
                 />
-              </>
-            )}
+              }
+              label="Remove Lanyard"
+            />
           </div>
         </Box>
       )}
@@ -298,24 +409,15 @@ function App() {
         <Button
           variant="contained"
           style={{ backgroundColor: '#0075bc', color: '#fff' }}
-          onClick={calculateScore}
-        >
-          Calculate Score
-        </Button>
-        <Button
-          variant="outlined"
-          style={{ color: '#0075bc', borderColor: '#0075bc' }}
           onClick={handleReset}
         >
           Reset
         </Button>
       </Box>
 
-      {score !== null && (
-        <Typography variant="h6" align="center" gutterBottom>
-          Calculated Score: {score > 0 ? score.toFixed(2) : 'Disqualified'}
-        </Typography>
-      )}
+      <Box marginTop={3} padding="0 16px">
+        {getResultAlert()}
+      </Box>
 
       <Box marginTop={5} padding={2} textAlign="center" borderTop="1px solid #ccc">
         <Typography variant="body2" color="textSecondary">
