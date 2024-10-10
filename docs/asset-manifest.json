@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/AIDA-Freediving-Score-Calculator/static/js/main.d7ebe9f9.js",
+    "main.js": "/AIDA-Freediving-Score-Calculator/static/js/main.add9fcb8.js",
     "index.html": "/AIDA-Freediving-Score-Calculator/index.html",
-    "main.d7ebe9f9.js.map": "/AIDA-Freediving-Score-Calculator/static/js/main.d7ebe9f9.js.map"
+    "main.add9fcb8.js.map": "/AIDA-Freediving-Score-Calculator/static/js/main.add9fcb8.js.map"
   },
   "entrypoints": [
-    "static/js/main.d7ebe9f9.js"
+    "static/js/main.add9fcb8.js"
   ]
 }
