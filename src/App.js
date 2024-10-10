@@ -190,11 +190,11 @@ useEffect(() => {
         setPenalties={setPenalties}
       />
 
-      <DisqualificationComponent
+      {/* <DisqualificationComponent
         discipline={discipline}
         disqualification={disqualification}
         setDisqualification={setDisqualification}
-      />
+      /> */}
 
       <Box
         display="flex"
