@@ -16,6 +16,7 @@
     "@mui/material": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-router-dom": "^6.27.0",
     "react-scripts": "latest",
     "web-vitals": "^2.1.4",
     "workbox-background-sync": "^6.6.0",
@@ -43,5 +44,4 @@
       "last 1 safari version"
     ]
   }
-
 }

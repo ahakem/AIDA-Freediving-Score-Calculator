@@ -1,279 +1,62 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Box, Typography, Button, Link } from '@mui/material';
-import TabsComponent from './components/TabsComponent';
-import ScoreInput from './components/ScoreInput';
-import PenaltiesComponent from './components/PenaltiesComponent';
-import DeviationInput from './components/DeviationInput';
-import ResultAlert from './components/ResultAlert';
-import { calculateStartPenalty, getPenaltyCodes } from './utils/PenaltyUtils';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider } from '@mui/material/styles';
+import { AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemText, IconButton } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import theme from './theme';
+import PointsCalculator from './components/PointsCalculator';
+// Import HomePage if needed later
+// import HomePage from './components/HomePage';
+import StartListTime from './components/StartListTime';
+import Footer from './components/Footer';
 
 function App() {
-  const [discipline, setDiscipline] = useState('Static');
-  const [apMinutes, setApMinutes] = useState('');
-  const [apSeconds, setApSeconds] = useState('');
-  const [rpMinutes, setRpMinutes] = useState('');
-  const [rpSeconds, setRpSeconds] = useState('');
-  const [apDistance, setApDistance] = useState('');
-  const [rpDistance, setRpDistance] = useState('');
-  const [startDeviation, setStartDeviation] = useState('');
-  const [penalties, setPenalties] = useState({
-    earlyStart: false,
-    lateStart: false,
-    noTouchAtStart: false,
-    pulling: 0,
-    noTouchAtTurn: 0,
-    missingTag: false,
-    grabLine: 0,
-    removeLanyard: false,
-  });
-  const [disqualification, setDisqualification] = useState(null);
-  const [score, setScore] = useState(null);
-  const [errors, setErrors] = useState({});
-  const [detailedPenalties, setDetailedPenalties] = useState([]);
-  const [showReminder, setShowReminder] = useState(false);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
 
-  // Ensure to reset everything when changing disciplines
-  const handleReset = () => {
-    setApMinutes('');
-    setApSeconds('');
-    setRpMinutes('');
-    setRpSeconds('');
-    setApDistance('');
-    setRpDistance('');
-    setStartDeviation('');
-    setPenalties({
-      earlyStart: false,
-      lateStart: false,
-      noTouchAtStart: false,
-      pulling: 0,
-      noTouchAtTurn: 0,
-      missingTag: false,
-      grabLine: 0,
-      removeLanyard: false,
-    });
-    setDisqualification(null);
-    setScore(null); // Clear the score to reset the display
-    setErrors({});
-    setDetailedPenalties([]);
-    setShowReminder(false);
+  const toggleDrawer = () => {
+    setDrawerOpen(!drawerOpen);
   };
-
-  // Use effect to reset state on discipline change
-  useEffect(() => {
-    handleReset(); 
-  }, [discipline]); // Depend on discipline changes for reset
-  
-  const validateInputs = () => {
-    const newErrors = {};
-
-    if (discipline === 'Static') {
-      if (!apMinutes) newErrors.apMinutes = 'AP minutes required';
-      if (!apSeconds) newErrors.apSeconds = 'AP seconds required';
-      if (!rpMinutes) newErrors.rpMinutes = 'RP minutes required';
-      if (!rpSeconds) newErrors.rpSeconds = 'RP seconds required';
-    } else {
-      if (!apDistance) newErrors.apDistance = 'AP distance required';
-      if (!rpDistance) newErrors.rpDistance = 'RP distance required';
-    }
-
-    if ((penalties.earlyStart || penalties.lateStart) && !startDeviation && discipline !== 'Depth') {
-      const deviationLabel = penalties.earlyStart ? "early start time" : "late start time";
-      newErrors.startDeviation = `${deviationLabel} is required`;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const calculateScore = () => {
-    if (disqualification) {
-      setScore(0);
-      return;
-    }
-
-    if (!validateInputs()) return;
-
-    const startPenalty = calculateStartPenalty(penalties, startDeviation, discipline);
-
-    if (startPenalty === 'disqualified') {
-      setScore(0);
-      return;
-    }
-
-    let points = 0;
-    let penalty = startPenalty;
-    const newDetailedPenalties = [];
-
-    const addPenaltyDetail = (description, points) => {
-      penalty += points;
-      newDetailedPenalties.push(`${description}: ${points} points`);
-    };
-
-    if (discipline === 'Static') {
-      const apTime = parseInt(apMinutes, 10) * 60 + parseInt(apSeconds, 10);
-      const rpTime = parseInt(rpMinutes, 10) * 60 + parseInt(rpSeconds, 10);
-      points = Math.floor((Math.floor(rpTime) * 0.2) * 5) / 5;
-
-      if (rpTime < apTime) {
-        const underAPPenalty = (apTime - rpTime) * 0.2;
-        addPenaltyDetail('UNDER AP', underAPPenalty);
-      }
-    } else if (discipline === 'Dynamic') {
-      const apNumber = parseFloat(apDistance);
-      const rpNumber = Math.floor(parseFloat(rpDistance));
-      points = Math.floor((rpNumber * 0.5) * 2) / 2;
-
-      if (rpNumber < apNumber) {
-        const underAPPenalty = (apNumber - rpNumber) * 0.5;
-        addPenaltyDetail('UNDER AP', underAPPenalty);
-      }
-      if (penalties.noTouchAtStart) {
-        addPenaltyDetail('No Body Part Touch at Start', 5);
-      }
-      if (penalties.pulling > 0) {
-        addPenaltyDetail(`Illegal Propulsion Assistance x${penalties.pulling}`, penalties.pulling * 5);
-      }
-      if (penalties.noTouchAtTurn > 0) {
-        addPenaltyDetail(`No Touch at Turn x${penalties.noTouchAtTurn}`, penalties.noTouchAtTurn * 5);
-      }
-    } else if (discipline === 'Depth') {
-      const apNumber = parseFloat(apDistance);
-      const rpNumber = Math.floor(parseFloat(rpDistance));
-      points = rpNumber;
-
-      if (rpNumber < apNumber && !penalties.missingTag) {
-        setShowReminder(true);
-      } else {
-        setShowReminder(false);
-      }
-
-      if (penalties.missingTag) {
-        addPenaltyDetail('Missing Tag', 1);
-      }
-      if (penalties.grabLine > 0) {
-        addPenaltyDetail(`Grab of Line x${penalties.grabLine}`, penalties.grabLine * 5);
-      }
-      if (penalties.removeLanyard) {
-        addPenaltyDetail('Removed Lanyard', 10);
-      }
-    }
-
-    if (penalties.earlyStart) {
-      addPenaltyDetail('Early Start Penalty', startPenalty);
-    }
-
-    if (penalties.lateStart) {
-      addPenaltyDetail('Late Start Penalty', startPenalty);
-    }
-
-    setDetailedPenalties(newDetailedPenalties);
-    const finalScore = Math.max(points - penalty, 0);
-    setScore(finalScore);
-  };
-
-  useEffect(() => {
-    calculateScore();
-  }, [
-    discipline, apMinutes, apSeconds, rpMinutes, rpSeconds,
-    apDistance, rpDistance, startDeviation, penalties, disqualification
-  ]);
 
   return (
-    <Container maxWidth="md" style={{ padding: 0 }}>
-      <TabsComponent discipline={discipline} handleReset={handleReset} setDiscipline={setDiscipline} />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <AppBar position="fixed" style={{ backgroundColor: '#0075bc' }}>
+          <Toolbar>
+            <IconButton edge="start" color="inherit" aria-label="menu" onClick={toggleDrawer}>
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" style={{ flexGrow: 1 }}>
+              AIDA Freediving Score Calculator
+            </Typography>
+          </Toolbar>
+        </AppBar>
 
-      {showReminder && (
-        <Box marginTop={2} padding="0 16px" color="red">
-          <Typography variant="body1">
-            Reminder: RP is less than AP. Consider selecting "No Tag".
-          </Typography>
-        </Box>
-      )}
+        <Drawer open={drawerOpen} onClose={toggleDrawer}>
+          <List>
+            <ListItem button component="a" href="/points-calculator">
+              <ListItemText primary="Points Calculator" />
+            </ListItem>
+            <ListItem button component="a" href="/start-list-time">
+              <ListItemText primary="Start List Time" />
+            </ListItem>
+            {/* Hide Home page for now */}
+          </List>
+        </Drawer>
 
-      {score !== null && (
-        <Box marginTop={3} padding="0 16px">
-          <ResultAlert
-            score={score}
-            detailedPenalties={detailedPenalties}
-            penaltyCodes={disqualification ? [disqualification] : [
-              ...getPenaltyCodes(
-                penalties,
-                startDeviation,
-                discipline,
-                rpMinutes,
-                rpSeconds,
-                apMinutes,
-                apSeconds,
-                rpDistance,
-                apDistance
-              )
-            ]}
-          />
-        </Box>
-      )}
+        <main style={{ flexGrow: 1, padding: '16px', marginTop: '64px' }}>
+          <Routes>
+            <Route path="/" element={<PointsCalculator />} />
+            <Route path="/points-calculator" element={<PointsCalculator />} />
+            <Route path="/start-list-time" element={<StartListTime />} />
+            {/* <Route path="/home" element={<HomePage />} /> */} {/* Comment out the Home Page */}
+          </Routes>
+        </main>
 
-      <ScoreInput
-        discipline={discipline}
-        apMinutes={apMinutes}
-        apSeconds={apSeconds}
-        rpMinutes={rpMinutes}
-        rpSeconds={rpSeconds}
-        apDistance={apDistance}
-        rpDistance={rpDistance}
-        setApMinutes={setApMinutes}
-        setApSeconds={setApSeconds}
-        setRpMinutes={setRpMinutes}
-        setRpSeconds={setRpSeconds}
-        setApDistance={setApDistance}
-        setRpDistance={setRpDistance}
-        errors={errors}
-      />
-
-      {(discipline !== 'Depth' || penalties.earlyStart) && !disqualification && (
-        <DeviationInput
-          penalties={penalties}
-          startDeviation={startDeviation}
-          setStartDeviation={setStartDeviation}
-          errors={errors}
-        />
-      )}
-
-      <PenaltiesComponent
-        discipline={discipline}
-        penalties={penalties}
-        setPenalties={setPenalties}
-      />
-
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        padding="0 16px"
-        marginTop={3}
-      >
-        <Button
-          variant="contained"
-          style={{ backgroundColor: '#0075bc', color: '#fff' }}
-          onClick={handleReset}
-        >
-          Reset
-        </Button>
-      </Box>
-
-      <Box marginTop={5} padding={2} textAlign="center" borderTop="1px solid #ccc">
-        <Typography variant="body2" color="textSecondary">
-          © {new Date().getFullYear()} Ahmed (Hakim) Elkholy |{' '}
-          <Link
-            href="https://www.instagram.com/hakim_elkholy/"
-            target="_blank"
-            rel="noopener noreferrer"
-            color="inherit"
-            style={{ textDecoration: 'none' }}
-          >
-            Instagram
-          </Link>
-        </Typography>
-      </Box>
-    </Container>
+        <Footer /> {/* Make footer globally visible */}
+      </div>
+    </ThemeProvider>
   );
 }
 
