@@ -1,11 +1,15 @@
 import React from 'react';
 import { Tabs, Tab } from '@mui/material';
 
-function TabsComponent({ discipline, setDiscipline }) {
+function TabsComponent({ discipline, setDiscipline, handleReset }) {
+  const handleChange = (value) => {
+    setDiscipline(value);
+    handleReset();
+  }
   return (
     <Tabs
       value={discipline}
-      onChange={(e, value) => setDiscipline(value)}
+      onChange={(e,value) => handleChange(value)}
       indicatorColor="primary"
       textColor="primary"
       centered

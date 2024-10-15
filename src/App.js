@@ -20,17 +20,19 @@ function App() {
     earlyStart: false,
     lateStart: false,
     noTouchAtStart: false,
-    pulling: false,
-    noTouchAtTurn: false,
+    pulling: 0,
+    noTouchAtTurn: 0,
     missingTag: false,
-    grabLine: 0, // Changed to count instead of boolean
+    grabLine: 0,
     removeLanyard: false,
   });
   const [disqualification, setDisqualification] = useState(null);
   const [score, setScore] = useState(null);
   const [errors, setErrors] = useState({});
-  const [detailedPenalties, setDetailedPenalties] = useState([]); // ADDED: State to track detailed penalties
+  const [detailedPenalties, setDetailedPenalties] = useState([]);
+  const [showReminder, setShowReminder] = useState(false);
 
+  // Ensure to reset everything when changing disciplines
   const handleReset = () => {
     setApMinutes('');
     setApSeconds('');
@@ -43,18 +45,24 @@ function App() {
       earlyStart: false,
       lateStart: false,
       noTouchAtStart: false,
-      pulling: false,
-      noTouchAtTurn: false,
+      pulling: 0,
+      noTouchAtTurn: 0,
       missingTag: false,
       grabLine: 0,
       removeLanyard: false,
     });
     setDisqualification(null);
-    setScore(null);
+    setScore(null); // Clear the score to reset the display
     setErrors({});
-    setDetailedPenalties([]); // Reset detailed penalties
+    setDetailedPenalties([]);
+    setShowReminder(false);
   };
 
+  // Use effect to reset state on discipline change
+  useEffect(() => {
+    handleReset(); 
+  }, [discipline]); // Depend on discipline changes for reset
+  
   const validateInputs = () => {
     const newErrors = {};
 
@@ -94,67 +102,73 @@ function App() {
 
     let points = 0;
     let penalty = startPenalty;
-    const newDetailedPenalties = []; // Initialize here
+    const newDetailedPenalties = [];
+
+    const addPenaltyDetail = (description, points) => {
+      penalty += points;
+      newDetailedPenalties.push(`${description}: ${points} points`);
+    };
 
     if (discipline === 'Static') {
       const apTime = parseInt(apMinutes, 10) * 60 + parseInt(apSeconds, 10);
       const rpTime = parseInt(rpMinutes, 10) * 60 + parseInt(rpSeconds, 10);
-      const roundedRPTime = Math.floor(rpTime);
-      points = Math.floor((roundedRPTime * 0.2) * 5) / 5;
+      points = Math.floor((Math.floor(rpTime) * 0.2) * 5) / 5;
+
       if (rpTime < apTime) {
         const underAPPenalty = (apTime - rpTime) * 0.2;
-        penalty += underAPPenalty;
-        newDetailedPenalties.push(`UNDER AP: ${underAPPenalty.toFixed(2)} points`);
+        addPenaltyDetail('UNDER AP', underAPPenalty);
       }
     } else if (discipline === 'Dynamic') {
       const apNumber = parseFloat(apDistance);
       const rpNumber = Math.floor(parseFloat(rpDistance));
       points = Math.floor((rpNumber * 0.5) * 2) / 2;
+
       if (rpNumber < apNumber) {
         const underAPPenalty = (apNumber - rpNumber) * 0.5;
-        penalty += underAPPenalty;
-        newDetailedPenalties.push(`UNDER AP: ${underAPPenalty.toFixed(2)} points`);
+        addPenaltyDetail('UNDER AP', underAPPenalty);
       }
-
       if (penalties.noTouchAtStart) {
-        penalty += 5;
-        newDetailedPenalties.push('No Body Part Touch at Start: 5 points');
+        addPenaltyDetail('No Body Part Touch at Start', 5);
       }
-      if (penalties.pulling) {
-        penalty += penalties.pulling * 5;
-        newDetailedPenalties.push(`Illegal Propulsion Assistance: ${penalties.pulling * 5} points`);
+      if (penalties.pulling > 0) {
+        addPenaltyDetail(`Illegal Propulsion Assistance x${penalties.pulling}`, penalties.pulling * 5);
       }
-      if (penalties.noTouchAtTurn) {
-        penalty += penalties.noTouchAtTurn * 5;
-        newDetailedPenalties.push(`No Touch at Turn: ${penalties.noTouchAtTurn * 5} points`);
+      if (penalties.noTouchAtTurn > 0) {
+        addPenaltyDetail(`No Touch at Turn x${penalties.noTouchAtTurn}`, penalties.noTouchAtTurn * 5);
       }
     } else if (discipline === 'Depth') {
       const apNumber = parseFloat(apDistance);
       const rpNumber = Math.floor(parseFloat(rpDistance));
       points = rpNumber;
-      if (rpNumber < apNumber) {
-        const underAPPenalty = apNumber - rpNumber;
-        penalty += underAPPenalty;
-        setPenalties((prev) => ({ ...prev, missingTag: true }));
-        newDetailedPenalties.push(`UNDER AP: ${underAPPenalty} points`);
+
+      if (rpNumber < apNumber && !penalties.missingTag) {
+        setShowReminder(true);
+      } else {
+        setShowReminder(false);
       }
+
       if (penalties.missingTag) {
-        penalty += 1;
-        newDetailedPenalties.push('Missing Tag: 1 point');
+        addPenaltyDetail('Missing Tag', 1);
       }
       if (penalties.grabLine > 0) {
-        penalty += penalties.grabLine * 5;
-        newDetailedPenalties.push(`Grab of Line x${penalties.grabLine}: ${penalties.grabLine * 5} points`);
+        addPenaltyDetail(`Grab of Line x${penalties.grabLine}`, penalties.grabLine * 5);
       }
       if (penalties.removeLanyard) {
-        penalty += 10;
-        newDetailedPenalties.push('Removed Lanyard: 10 points');
+        addPenaltyDetail('Removed Lanyard', 10);
       }
     }
 
+    if (penalties.earlyStart) {
+      addPenaltyDetail('Early Start Penalty', startPenalty);
+    }
+
+    if (penalties.lateStart) {
+      addPenaltyDetail('Late Start Penalty', startPenalty);
+    }
+
+    setDetailedPenalties(newDetailedPenalties);
     const finalScore = Math.max(points - penalty, 0);
     setScore(finalScore);
-    setDetailedPenalties(newDetailedPenalties); // Update state with detailed penalties
   };
 
   useEffect(() => {
@@ -164,33 +178,39 @@ function App() {
     apDistance, rpDistance, startDeviation, penalties, disqualification
   ]);
 
-  useEffect(() => {
-    handleReset();
-  }, [discipline]);
-
   return (
     <Container maxWidth="md" style={{ padding: 0 }}>
-      <TabsComponent discipline={discipline} setDiscipline={setDiscipline} />
-      
-      <Box marginTop={3} padding="0 16px">
-        <ResultAlert
-          score={score}
-          detailedPenalties={detailedPenalties}
-          penaltyCodes={disqualification ? [disqualification] : [
-            ...getPenaltyCodes(
-              penalties,
-              startDeviation,
-              discipline,
-              rpMinutes,
-              rpSeconds,
-              apMinutes,
-              apSeconds,
-              rpDistance,
-              apDistance
-            )
-          ]}
-        />
-      </Box>
+      <TabsComponent discipline={discipline} handleReset={handleReset} setDiscipline={setDiscipline} />
+
+      {showReminder && (
+        <Box marginTop={2} padding="0 16px" color="red">
+          <Typography variant="body1">
+            Reminder: RP is less than AP. Consider selecting "No Tag".
+          </Typography>
+        </Box>
+      )}
+
+      {score !== null && (
+        <Box marginTop={3} padding="0 16px">
+          <ResultAlert
+            score={score}
+            detailedPenalties={detailedPenalties}
+            penaltyCodes={disqualification ? [disqualification] : [
+              ...getPenaltyCodes(
+                penalties,
+                startDeviation,
+                discipline,
+                rpMinutes,
+                rpSeconds,
+                apMinutes,
+                apSeconds,
+                rpDistance,
+                apDistance
+              )
+            ]}
+          />
+        </Box>
+      )}
 
       <ScoreInput
         discipline={discipline}
