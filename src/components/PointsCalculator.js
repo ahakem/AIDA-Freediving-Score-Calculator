@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Box, Button, Typography, Link } from '@mui/material';
+import { Container, Box, Button, Typography } from '@mui/material';
 import TabsComponent from './TabsComponent';
 import ScoreInput from './ScoreInput';
 import PenaltiesComponent from './PenaltiesComponent';
 import DeviationInput from './DeviationInput';
 import ResultAlert from './ResultAlert';
-import { calculateStartPenalty, getPenaltyCodes } from '../utils/PenaltyUtils';
+import { getPenaltyCodes } from '../utils/PenaltyUtils';
 
 function PointsCalculator() {
-  // All state and logic remains the same as before
   const [discipline, setDiscipline] = useState('Static');
   const [apMinutes, setApMinutes] = useState('');
   const [apSeconds, setApSeconds] = useState('');
@@ -27,7 +26,6 @@ function PointsCalculator() {
     grabLine: 0,
     removeLanyard: false,
   });
-  const [disqualification, setDisqualification] = useState(null);
   const [score, setScore] = useState(null);
   const [errors, setErrors] = useState({});
   const [detailedPenalties, setDetailedPenalties] = useState([]);
@@ -51,7 +49,6 @@ function PointsCalculator() {
       grabLine: 0,
       removeLanyard: false,
     });
-    setDisqualification(null);
     setScore(null);
     setErrors({});
     setDetailedPenalties([]);
@@ -60,7 +57,6 @@ function PointsCalculator() {
 
   const validateInputs = () => {
     const newErrors = {};
-
     if (discipline === 'Static') {
       if (!apMinutes) newErrors.apMinutes = 'AP minutes required';
       if (!apSeconds) newErrors.apSeconds = 'AP seconds required';
@@ -72,7 +68,7 @@ function PointsCalculator() {
     }
 
     if ((penalties.earlyStart || penalties.lateStart) && !startDeviation && discipline !== 'Depth') {
-      const deviationLabel = penalties.earlyStart ? "early start time" : "late start time";
+      const deviationLabel = penalties.earlyStart ? 'early start time' : 'late start time';
       newErrors.startDeviation = `${deviationLabel} is required`;
     }
 
@@ -81,34 +77,34 @@ function PointsCalculator() {
   };
 
   const calculateScore = () => {
-    if (disqualification) {
-      setScore(0);
-      return;
-    }
-
     if (!validateInputs()) return;
-
-    const startPenalty = calculateStartPenalty(penalties, startDeviation, discipline);
-
-    if (startPenalty === 'disqualified') {
-      setScore(0);
-      return;
-    }
-
-    let points = 0;
-    let penalty = startPenalty;
+  
+    let totalPenalty = 0;
     const newDetailedPenalties = [];
-
+  
+    const calculateStartPenalty = (deviation) => {
+      return Math.ceil(deviation / 5); // 1 point for every 5 seconds
+    };
+  
+    if ((penalties.earlyStart || penalties.lateStart) && startDeviation) {
+      const penaltyPoints = calculateStartPenalty(parseFloat(startDeviation));
+      const startDescription = penalties.earlyStart ? 'Early Start Deviation' : 'Late Start Deviation';
+      newDetailedPenalties.push(`${startDescription}: ${penaltyPoints} points`); // Add to detailed penalties
+      totalPenalty += penaltyPoints;
+    }
+  
+    let points = 0;
+  
     const addPenaltyDetail = (description, points) => {
-      penalty += points;
+      totalPenalty += points;
       newDetailedPenalties.push(`${description}: ${points} points`);
     };
-
+  
     if (discipline === 'Static') {
       const apTime = parseInt(apMinutes, 10) * 60 + parseInt(apSeconds, 10);
       const rpTime = parseInt(rpMinutes, 10) * 60 + parseInt(rpSeconds, 10);
       points = Math.floor((Math.floor(rpTime) * 0.2) * 5) / 5;
-
+  
       if (rpTime < apTime) {
         const underAPPenalty = (apTime - rpTime) * 0.2;
         addPenaltyDetail('UNDER AP', underAPPenalty);
@@ -117,7 +113,7 @@ function PointsCalculator() {
       const apNumber = parseFloat(apDistance);
       const rpNumber = Math.floor(parseFloat(rpDistance));
       points = Math.floor((rpNumber * 0.5) * 2) / 2;
-
+  
       if (rpNumber < apNumber) {
         const underAPPenalty = (apNumber - rpNumber) * 0.5;
         addPenaltyDetail('UNDER AP', underAPPenalty);
@@ -135,13 +131,13 @@ function PointsCalculator() {
       const apNumber = parseFloat(apDistance);
       const rpNumber = Math.floor(parseFloat(rpDistance));
       points = rpNumber;
-
+  
       if (rpNumber < apNumber && !penalties.missingTag) {
         setShowReminder(true);
       } else {
         setShowReminder(false);
       }
-
+  
       if (penalties.missingTag) {
         addPenaltyDetail('Missing Tag', 1);
       }
@@ -152,17 +148,9 @@ function PointsCalculator() {
         addPenaltyDetail('Removed Lanyard', 10);
       }
     }
-
-    if (penalties.earlyStart) {
-      addPenaltyDetail('Early Start Penalty', startPenalty);
-    }
-
-    if (penalties.lateStart) {
-      addPenaltyDetail('Late Start Penalty', startPenalty);
-    }
-
-    setDetailedPenalties(newDetailedPenalties);
-    const finalScore = Math.max(points - penalty, 0);
+  
+    setDetailedPenalties(newDetailedPenalties); // Update detailed penalties
+    const finalScore = Math.max(points - totalPenalty, 0);
     setScore(finalScore);
   };
 
@@ -170,7 +158,7 @@ function PointsCalculator() {
     calculateScore();
   }, [
     discipline, apMinutes, apSeconds, rpMinutes, rpSeconds,
-    apDistance, rpDistance, startDeviation, penalties, disqualification
+    apDistance, rpDistance, startDeviation, penalties
   ]);
 
   return (
@@ -190,7 +178,7 @@ function PointsCalculator() {
           <ResultAlert
             score={score}
             detailedPenalties={detailedPenalties}
-            penaltyCodes={disqualification ? [disqualification] : [
+            penaltyCodes={[
               ...getPenaltyCodes(
                 penalties,
                 startDeviation,
@@ -224,7 +212,7 @@ function PointsCalculator() {
         errors={errors}
       />
 
-      {(discipline !== 'Depth' || penalties.earlyStart) && !disqualification && (
+      {(discipline !== 'Depth' || penalties.earlyStart) && (
         <DeviationInput
           penalties={penalties}
           startDeviation={startDeviation}

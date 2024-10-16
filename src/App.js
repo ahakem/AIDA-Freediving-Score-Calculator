@@ -8,7 +8,7 @@ import theme from './theme';
 import PointsCalculator from './components/PointsCalculator';
 // Import HomePage if needed later
 // import HomePage from './components/HomePage';
-import StartListTime from './components/StartListTime';
+import CompetitionCountdown from './components/CompetitionCountdown';
 import Footer from './components/Footer';
 
 function App() {
@@ -49,7 +49,7 @@ function App() {
           <Routes>
             <Route path="/" element={<PointsCalculator />} />
             <Route path="/points-calculator" element={<PointsCalculator />} />
-            <Route path="/start-list-time" element={<StartListTime />} />
+            <Route path="/start-list-time" element={<CompetitionCountdown />} />
             {/* <Route path="/home" element={<HomePage />} /> */} {/* Comment out the Home Page */}
           </Routes>
         </main>

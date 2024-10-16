@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert } from '@mui/material';
 
-function ResultAlert({ score, penaltyCodes, detailedPenalties }) {
+function ResultAlert({ score, penaltyCodes = [], detailedPenalties = [] }) { // Default to empty arrays
   // Safely calculate total penalty points with error handling
   const totalPenaltyPoints = detailedPenalties.reduce((total, detail) => {
     const match = detail.match(/:\s(-?\d+(\.\d+)?)\spoints/);
@@ -22,7 +22,7 @@ function ResultAlert({ score, penaltyCodes, detailedPenalties }) {
 
   return (
     <Alert severity={penaltyCodes.length > 0 ? "warning" : "success"}>
-      Score: <strong style={{ fontWeight: 'bold' }}>{Math.max(score, 0).toFixed(2)}</strong>.
+      Score: <strong style={{ fontWeight: 'bold' }}>{Math.max(score, 0).toFixed(2)}</strong>
       {penaltyCodes.length > 0 && (
         <>
           Penalties applied:
