@@ -57,11 +57,23 @@ function PointsCalculator() {
 
   const validateInputs = () => {
     const newErrors = {};
+
     if (discipline === 'Static') {
       if (!apMinutes) newErrors.apMinutes = 'AP minutes required';
       if (!apSeconds) newErrors.apSeconds = 'AP seconds required';
       if (!rpMinutes) newErrors.rpMinutes = 'RP minutes required';
       if (!rpSeconds) newErrors.rpSeconds = 'RP seconds required';
+    } else if (discipline === 'Depth') {
+      if (!apDistance) newErrors.apDistance = 'AP distance required';
+      if (!rpDistance) newErrors.rpDistance = 'RP distance required';
+      if (parseFloat(rpDistance) > parseFloat(apDistance)) {
+        newErrors.rpDistance = 'RP cannot exceed AP';
+      }
+      if (parseFloat(rpDistance) < parseFloat(apDistance) && !penalties.missingTag) {
+        setShowReminder(true);
+      } else {
+        setShowReminder(false);
+      }
     } else {
       if (!apDistance) newErrors.apDistance = 'AP distance required';
       if (!rpDistance) newErrors.rpDistance = 'RP distance required';
@@ -78,33 +90,31 @@ function PointsCalculator() {
 
   const calculateScore = () => {
     if (!validateInputs()) return;
-  
+
     let totalPenalty = 0;
     const newDetailedPenalties = [];
-  
-    const calculateStartPenalty = (deviation) => {
-      return Math.ceil(deviation / 5); // 1 point for every 5 seconds
-    };
-  
+
+    const calculateStartPenalty = (deviation) => Math.ceil(deviation / 5);
+
     if ((penalties.earlyStart || penalties.lateStart) && startDeviation) {
       const penaltyPoints = calculateStartPenalty(parseFloat(startDeviation));
       const startDescription = penalties.earlyStart ? 'Early Start Deviation' : 'Late Start Deviation';
-      newDetailedPenalties.push(`${startDescription}: ${penaltyPoints} points`); // Add to detailed penalties
+      newDetailedPenalties.push(`${startDescription}: ${penaltyPoints} points`);
       totalPenalty += penaltyPoints;
     }
-  
+
     let points = 0;
-  
+
     const addPenaltyDetail = (description, points) => {
       totalPenalty += points;
       newDetailedPenalties.push(`${description}: ${points} points`);
     };
-  
+
     if (discipline === 'Static') {
       const apTime = parseInt(apMinutes, 10) * 60 + parseInt(apSeconds, 10);
       const rpTime = parseInt(rpMinutes, 10) * 60 + parseInt(rpSeconds, 10);
       points = Math.floor((Math.floor(rpTime) * 0.2) * 5) / 5;
-  
+
       if (rpTime < apTime) {
         const underAPPenalty = (apTime - rpTime) * 0.2;
         addPenaltyDetail('UNDER AP', underAPPenalty);
@@ -113,7 +123,7 @@ function PointsCalculator() {
       const apNumber = parseFloat(apDistance);
       const rpNumber = Math.floor(parseFloat(rpDistance));
       points = Math.floor((rpNumber * 0.5) * 2) / 2;
-  
+
       if (rpNumber < apNumber) {
         const underAPPenalty = (apNumber - rpNumber) * 0.5;
         addPenaltyDetail('UNDER AP', underAPPenalty);
@@ -131,13 +141,7 @@ function PointsCalculator() {
       const apNumber = parseFloat(apDistance);
       const rpNumber = Math.floor(parseFloat(rpDistance));
       points = rpNumber;
-  
-      if (rpNumber < apNumber && !penalties.missingTag) {
-        setShowReminder(true);
-      } else {
-        setShowReminder(false);
-      }
-  
+
       if (penalties.missingTag) {
         addPenaltyDetail('Missing Tag', 1);
       }
@@ -148,8 +152,8 @@ function PointsCalculator() {
         addPenaltyDetail('Removed Lanyard', 10);
       }
     }
-  
-    setDetailedPenalties(newDetailedPenalties); // Update detailed penalties
+
+    setDetailedPenalties(newDetailedPenalties);
     const finalScore = Math.max(points - totalPenalty, 0);
     setScore(finalScore);
   };
@@ -165,6 +169,14 @@ function PointsCalculator() {
     <Container maxWidth="md" style={{ padding: 0 }}>
       <TabsComponent discipline={discipline} handleReset={handleReset} setDiscipline={setDiscipline} />
 
+      {Object.keys(errors).length > 0 && (
+        <Box marginTop={2} padding="0 16px" color="red">
+          {Object.values(errors).map((error, index) =>
+            <Typography key={index} variant="body1">{error}</Typography>
+          )}
+        </Box>
+      )}
+
       {showReminder && (
         <Box marginTop={2} padding="0 16px" color="red">
           <Typography variant="body1">
@@ -173,7 +185,7 @@ function PointsCalculator() {
         </Box>
       )}
 
-      {score !== null && (
+      {score !== null && Object.keys(errors).length === 0 && (
         <Box marginTop={3} padding="0 16px">
           <ResultAlert
             score={score}
