@@ -1,5 +1,6 @@
 import React from 'react';
-import { TextField } from '@mui/material';
+import { TextField, Box } from '@mui/material';
+import TimeInput from './TimeInput';
 
 function ScoreInput({ 
   discipline, apMinutes, setApMinutes, apSeconds, setApSeconds, 
@@ -7,57 +8,37 @@ function ScoreInput({
   apDistance, setApDistance, rpDistance, setRpDistance, errors 
 }) {
   return (
-    <div style={{ padding: '0 16px' }}>
+    <Box style={{ padding: '0 16px' }}>
       {discipline === 'Static' ? (
         <>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <TextField
-              label="AP Min"
-              type="tel"
-              inputMode="numeric"
+          <Box display="flex" gap="8px">
+            <TimeInput
+              label="AP Minutes"
               value={apMinutes}
-              onChange={(e) => setApMinutes(e.target.value)}
-              fullWidth
-              margin="normal"
-              error={!!errors.apMinutes}
-              helperText={errors.apMinutes}
+              setValue={setApMinutes}
+              max={13} // Limit minutes selection to 0-13
             />
-            <TextField
-              label="AP Sec"
-              type="tel"
-              inputMode="numeric"
+            <TimeInput
+              label="AP Seconds"
               value={apSeconds}
-              onChange={(e) => setApSeconds(e.target.value)}
-              fullWidth
-              margin="normal"
-              error={!!errors.apSeconds}
-              helperText={errors.apSeconds}
+              setValue={setApSeconds}
+              max={59} // Seconds limited to 0-59
             />
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <TextField
-              label="RP Min"
-              type="tel"
-              inputMode="numeric"
+          </Box>
+          <Box display="flex" gap="8px">
+            <TimeInput
+              label="RP Minutes"
               value={rpMinutes}
-              onChange={(e) => setRpMinutes(e.target.value)}
-              fullWidth
-              margin="normal"
-              error={!!errors.rpMinutes}
-              helperText={errors.rpMinutes}
+              setValue={setRpMinutes}
+              max={13} // Limit minutes selection to 0-13
             />
-            <TextField
-              label="RP Sec"
-              type="tel"
-              inputMode="numeric"
+            <TimeInput
+              label="RP Seconds"
               value={rpSeconds}
-              onChange={(e) => setRpSeconds(e.target.value)}
-              fullWidth
-              margin="normal"
-              error={!!errors.rpSeconds}
-              helperText={errors.rpSeconds}
+              setValue={setRpSeconds}
+              max={59}
             />
-          </div>
+          </Box>
         </>
       ) : (
         <>
@@ -85,7 +66,7 @@ function ScoreInput({
           />
         </>
       )}
-    </div>
+    </Box>
   );
 }
 

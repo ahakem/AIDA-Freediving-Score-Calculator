@@ -57,7 +57,6 @@ function PointsCalculator() {
 
   const validateInputs = () => {
     const newErrors = {};
-
     if (discipline === 'Static') {
       if (!apMinutes) newErrors.apMinutes = 'AP minutes required';
       if (!apSeconds) newErrors.apSeconds = 'AP seconds required';
