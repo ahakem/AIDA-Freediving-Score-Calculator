@@ -23,7 +23,7 @@ export const getPenaltyCodes = (penalties, deviation, discipline, rpMinutes, rpS
     if (deviationPoints === 'disqualified') {
       codes.push('DQ LATE/EARLY START');
     } else {
-      codes.push(`START - ${deviationPoints} points`);
+      if(penalties.earlyStart) {codes.push(`EARLY START`)} else codes.push(`LATE START`);
     }
   }
 

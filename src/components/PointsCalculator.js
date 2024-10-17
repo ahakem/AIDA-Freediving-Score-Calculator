@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Box, Button, Typography } from '@mui/material';
+import { Container, Box, Button, Typography, Alert } from '@mui/material';
 import TabsComponent from './TabsComponent';
 import ScoreInput from './ScoreInput';
 import PenaltiesComponent from './PenaltiesComponent';
@@ -9,10 +9,10 @@ import { getPenaltyCodes } from '../utils/PenaltyUtils';
 
 function PointsCalculator() {
   const [discipline, setDiscipline] = useState('Static');
-  const [apMinutes, setApMinutes] = useState('');
-  const [apSeconds, setApSeconds] = useState('');
-  const [rpMinutes, setRpMinutes] = useState('');
-  const [rpSeconds, setRpSeconds] = useState('');
+  const [apMinutes, setApMinutes] = useState('00');
+  const [apSeconds, setApSeconds] = useState('00');
+  const [rpMinutes, setRpMinutes] = useState('00');
+  const [rpSeconds, setRpSeconds] = useState('00');
   const [apDistance, setApDistance] = useState('');
   const [rpDistance, setRpDistance] = useState('');
   const [startDeviation, setStartDeviation] = useState('');
@@ -32,10 +32,10 @@ function PointsCalculator() {
   const [showReminder, setShowReminder] = useState(false);
 
   const handleReset = () => {
-    setApMinutes('');
-    setApSeconds('');
-    setRpMinutes('');
-    setRpSeconds('');
+    setApMinutes('00');
+    setApSeconds('00');
+    setRpMinutes('00');
+    setRpSeconds('00');
     setApDistance('');
     setRpDistance('');
     setStartDeviation('');
@@ -88,7 +88,10 @@ function PointsCalculator() {
   };
 
   const calculateScore = () => {
-    if (!validateInputs()) return;
+    if (!validateInputs()) {
+      setScore(null);
+      return;
+    }
 
     let totalPenalty = 0;
     const newDetailedPenalties = [];
@@ -104,11 +107,7 @@ function PointsCalculator() {
 
     let points = 0;
 
-    const addPenaltyDetail = (description, points) => {
-      totalPenalty += points;
-      newDetailedPenalties.push(`${description}: ${points} points`);
-    };
-
+    // Logic for Static discipline
     if (discipline === 'Static') {
       const apTime = parseInt(apMinutes, 10) * 60 + parseInt(apSeconds, 10);
       const rpTime = parseInt(rpMinutes, 10) * 60 + parseInt(rpSeconds, 10);
@@ -116,7 +115,10 @@ function PointsCalculator() {
 
       if (rpTime < apTime) {
         const underAPPenalty = (apTime - rpTime) * 0.2;
-        addPenaltyDetail('UNDER AP', underAPPenalty);
+        if (underAPPenalty > 0) {
+          newDetailedPenalties.push(`UNDER AP: ${underAPPenalty.toFixed(1)} points`);
+          totalPenalty += underAPPenalty;
+        }
       }
     } else if (discipline === 'Dynamic') {
       const apNumber = parseFloat(apDistance);
@@ -125,16 +127,22 @@ function PointsCalculator() {
 
       if (rpNumber < apNumber) {
         const underAPPenalty = (apNumber - rpNumber) * 0.5;
-        addPenaltyDetail('UNDER AP', underAPPenalty);
+        if (underAPPenalty > 0) {
+          newDetailedPenalties.push(`UNDER AP: ${underAPPenalty.toFixed(1)} points`);
+          totalPenalty += underAPPenalty;
+        }
       }
       if (penalties.noTouchAtStart) {
-        addPenaltyDetail('No Body Part Touch at Start', 5);
+        newDetailedPenalties.push('No Body Part Touch at Start: 5 points');
+        totalPenalty += 5;
       }
       if (penalties.pulling > 0) {
-        addPenaltyDetail(`Illegal Propulsion Assistance x${penalties.pulling}`, penalties.pulling * 5);
+        newDetailedPenalties.push(`Illegal Propulsion Assistance x${penalties.pulling}: ${(penalties.pulling * 5).toFixed(1)} points`);
+        totalPenalty += penalties.pulling * 5;
       }
       if (penalties.noTouchAtTurn > 0) {
-        addPenaltyDetail(`No Touch at Turn x${penalties.noTouchAtTurn}`, penalties.noTouchAtTurn * 5);
+        newDetailedPenalties.push(`No Touch at Turn x${penalties.noTouchAtTurn}: ${(penalties.noTouchAtTurn * 5).toFixed(1)} points`);
+        totalPenalty += penalties.noTouchAtTurn * 5;
       }
     } else if (discipline === 'Depth') {
       const apNumber = parseFloat(apDistance);
@@ -142,13 +150,16 @@ function PointsCalculator() {
       points = rpNumber;
 
       if (penalties.missingTag) {
-        addPenaltyDetail('Missing Tag', 1);
+        newDetailedPenalties.push('Missing Tag: 1 point');
+        totalPenalty += 1;
       }
       if (penalties.grabLine > 0) {
-        addPenaltyDetail(`Grab of Line x${penalties.grabLine}`, penalties.grabLine * 5);
+        newDetailedPenalties.push(`Grab of Line x${penalties.grabLine}: ${(penalties.grabLine * 5).toFixed(1)} points`);
+        totalPenalty += penalties.grabLine * 5;
       }
       if (penalties.removeLanyard) {
-        addPenaltyDetail('Removed Lanyard', 10);
+        newDetailedPenalties.push('Removed Lanyard: 10 points');
+        totalPenalty += 10;
       }
     }
 
@@ -169,18 +180,18 @@ function PointsCalculator() {
       <TabsComponent discipline={discipline} handleReset={handleReset} setDiscipline={setDiscipline} />
 
       {Object.keys(errors).length > 0 && (
-        <Box marginTop={2} padding="0 16px" color="red">
+        <Box marginTop={2} padding="0 16px">
           {Object.values(errors).map((error, index) =>
-            <Typography key={index} variant="body1">{error}</Typography>
+            <Alert key={index} severity="error" sx={{ m: 1 }}>{error}</Alert>
           )}
         </Box>
       )}
 
       {showReminder && (
-        <Box marginTop={2} padding="0 16px" color="red">
-          <Typography variant="body1">
+        <Box marginTop={2} padding="0 16px">
+          <Alert severity="warning" sx={{ m: 1 }}>
             Reminder: RP is less than AP. Consider selecting "No Tag".
-          </Typography>
+          </Alert>
         </Box>
       )}
 
